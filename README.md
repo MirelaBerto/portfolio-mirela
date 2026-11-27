@@ -14,6 +14,7 @@ portfolio_mirela/
 ├── demos/           # Demonstrações interativas (dados fictícios) dos painéis de BI
 │   ├── painel-chamados.html     # Painel de Gestão de Chamados (Power BI)
 │   ├── painel-indicadores.html  # Indicadores e histórico (Qlik Sense)
+│   ├── wls/                     # Build estático da loja WLS Acessórios (modo demonstração)
 │   └── lib/chart.umd.js         # Chart.js 4.4.1
 ├── assets/          # Currículo em PDF
 └── README.md        # Instruções de uso
