@@ -703,6 +703,7 @@ h1 {
 .proj-bg-2 { background: linear-gradient(135deg, #0c4a6e, #075985); }
 .proj-bg-3 { background: linear-gradient(135deg, #4a044e, #701a75); }
 .proj-bg-4 { background: linear-gradient(135deg, #022c22, #064e3b); }
+.proj-bg-5 { background: linear-gradient(135deg, #431407, #7c2d12); }
 
 .project-image::after {
   content: '';
