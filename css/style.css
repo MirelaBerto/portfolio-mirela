@@ -705,6 +705,7 @@ h1 {
 .proj-bg-4 { background: linear-gradient(135deg, #022c22, #064e3b); }
 .proj-bg-5 { background: linear-gradient(135deg, #431407, #7c2d12); }
 .proj-bg-6 { background: linear-gradient(135deg, #3b0764, #1e3a8a); }
+.proj-bg-7 { background: linear-gradient(135deg, #7c2d12, #be123c); }
 
 .project-image::after {
   content: '';
