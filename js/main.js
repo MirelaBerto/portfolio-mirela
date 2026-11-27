@@ -75,11 +75,11 @@ function handleForm() {
     showToast('⚠️ Preencha todos os campos obrigatórios.');
     return;
   }
-  showToast('✅ Mensagem enviada! Responderei em breve 💜');
-  document.getElementById('fname').value = '';
-  document.getElementById('femail').value = '';
-  document.getElementById('fsubject').value = '';
-  document.getElementById('fmessage').value = '';
+  // Abre o aplicativo de e-mail do visitante com a mensagem já preenchida
+  const subject = document.getElementById('fsubject').value.trim() || 'Contato pelo portfólio';
+  const body = `${msg}\n\n${name}\n${email}`;
+  window.location.href = `mailto:mirela.bertosilva@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  showToast('✉️ Abrindo seu aplicativo de e-mail...');
 }
 
 /* ── PARTICLES subtle (canvas) ── */
