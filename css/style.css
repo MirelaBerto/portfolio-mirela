@@ -774,32 +774,39 @@ h1 {
 }
 
 .project-body {
-  padding: 1.5rem;
+  padding: 1.1rem 1.15rem 1.2rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .project-title {
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 0.6rem;
+  line-height: 1.35;
+  margin-bottom: 0.45rem;
   color: var(--text);
 }
 
 .project-desc {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text2);
-  line-height: 1.65;
-  margin-bottom: 1.25rem;
-  flex: 1;
+  line-height: 1.55;
+  margin-bottom: 0.9rem;
+  /* mostra só as 3 primeiras linhas */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .project-stack {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  margin-top: auto;
 }
 
 .stack-badge {
