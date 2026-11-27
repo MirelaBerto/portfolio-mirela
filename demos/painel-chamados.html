@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Painel de Chamados — Demo</title>
+<meta name="description" content="Demonstração com dados fictícios de um painel de gestão de chamados feito em Power BI por Mirela Berto." />
+<style>
+  :root {
+    --navy: #0b2a4a;
+    --navy-2: #163d66;
+    --blue: #1e7be0;
+    --blue-2: #4aa3ff;
+    --green: #3f8f4f;
+    --ink: #1d2733;
+    --muted: #5b6878;
+    --line: #d6dde6;
+    --canvas: #ffffff;
+    --desk: #eaeef3;
+    --shadow: 0 2px 6px rgba(11, 42, 74, .18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Segoe UI", "Selawik", "Helvetica Neue", Arial, sans-serif;
+    background: var(--desk);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Faixa de aviso */
+  .demo-bar {
+    background: #fff7e0;
+    border-bottom: 1px solid #f0d995;
+    color: #6b5200;
+    font-size: 13px;
+    padding: 8px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .demo-bar a { color: #6b5200; font-weight: 600; }
+
+  /* Área do relatório */
+  .stage { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 18px 16px; }
+  .report {
+    width: 100%;
+    max-width: 1180px;
+    background: var(--canvas);
+    border: 1px dashed #b9c3cf;
+    padding: 18px 22px 22px;
+    position: relative;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Cartões no estilo Power BI */
+  .tile {
+    background: #fff;
+    box-shadow: var(--shadow);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .tile-title {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    padding: 5px 8px;
+  }
+  .header-tile {
+    background: var(--navy);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    box-shadow: var(--shadow);
+    min-height: 64px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 12px; line-height: 1.1; opacity: .9; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid #fff; display: grid; place-items: center; font-weight: 800; font-size: 13px;
+  }
+  .header-tile h1 { margin: 0; font-size: 24px; letter-spacing: .5px; }
+  .header-tile h2 { margin: 0; font-size: 17px; text-align: center; line-height: 1.25; }
+
+  .grid-top {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 16px;
+  }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+  .kpi .val {
+    font-family: "Consolas", "Menlo", monospace;
+    font-size: 34px;
+    text-align: center;
+    padding: 8px 4px 10px;
+    letter-spacing: 1px;
+  }
+  .kpi .sub { font-size: 11px; color: var(--muted); text-align: center; margin: -8px 0 8px; }
+
+  .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .filter-body { padding: 8px 10px; font-size: 13px; }
+  .filter-body label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+  .filter-body select, .filter-body input[type=date] {
+    width: 100%;
+    font: inherit;
+    font-size: 12px;
+    padding: 4px 6px;
+    border: 1px solid #b7c0cb;
+    border-radius: 2px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .stack { display: grid; gap: 14px; }
+
+  .period { margin-top: 14px; }
+  .period .filter-body { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .period .filter-body input { width: auto; flex: 1; min-width: 130px; }
+
+  .grid-bottom { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; margin-top: 16px; }
+  .chart-box { position: relative; height: 260px; padding: 8px 10px; }
+
+  /* Treemap */
+  .treemap { position: relative; height: 260px; margin: 8px; }
+  .tm-cell {
+    position: absolute;
+    border: 1px solid #fff;
+    color: #fff;
+    font-size: 11px;
+    padding: 4px 5px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  .tm-cell:hover { filter: brightness(1.12); }
+  .tm-cell.dim { opacity: .35; }
+  .tm-cell .tm-val { position: absolute; left: 5px; bottom: 3px; font-weight: 600; }
+
+  /* Setas de navegação */
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #fff;
+    border: 0;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+  }
+  .nav-arrow.prev { left: -18px; }
+  .nav-arrow.next { right: -18px; }
+
+  /* Página Início */
+  .cover {
+    min-height: 520px;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+  }
+  .cover-left {
+    background: linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%);
+    color: #fff;
+    padding: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    box-shadow: var(--shadow);
+  }
+  .cover-left h1 { margin: 0; font-size: 34px; line-height: 1.15; }
+  .cover-left p { margin: 0; opacity: .85; line-height: 1.5; }
+  .cover-right { display: grid; gap: 14px; align-content: center; }
+  .cover-btn {
+    display: block; width: 100%;
+    background: #fff; border: 0; box-shadow: var(--shadow);
+    padding: 18px 20px; font: inherit; font-size: 16px; font-weight: 700; color: var(--navy);
+    cursor: pointer; text-align: left; border-left: 6px solid var(--blue);
+  }
+  .cover-btn span { font-weight: 400; font-size: 13px; color: var(--muted); display: block; margin-top: 4px; }
+  .cover-btn:hover { background: #f3f7fc; }
+
+  /* Página Chamados */
+  .kpis-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: var(--navy); color: #fff; text-align: left; padding: 6px 8px; font-weight: 600; position: sticky; top: 0; }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  tr:nth-child(even) td { background: #f5f8fb; }
+  .table-wrap { max-height: 300px; overflow: auto; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .pill.ok { background: #e3f3e6; color: #2c6b38; }
+  .pill.pend { background: #fde9e7; color: #a3342a; }
+
+  /* Abas inferiores */
+  .tabs {
+    background: #2b2b2b;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 0 10px;
+    position: sticky;
+    bottom: 0;
+  }
+  .tabs button {
+    background: transparent;
+    border: 0;
+    color: #ddd;
+    font: inherit;
+    font-size: 13px;
+    padding: 9px 18px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+  }
+  .tabs button.active { background: #3a3a3a; color: #fff; border-bottom-color: #f2c811; }
+
+  @media (max-width: 860px) {
+    .grid-top, .grid-bottom, .grid-3, .cover { grid-template-columns: 1fr; }
+    .kpis-4 { grid-template-columns: repeat(2, 1fr); }
+    .nav-arrow { display: none; }
+    .header-tile h1 { font-size: 20px; }
+    .kpi .val { font-size: 26px; }
+  }
+  @media (max-width: 480px) {
+    .report { padding: 12px; }
+    .kpis { grid-template-columns: 1fr; }
+    .filters { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span>⚠️ <b>Demonstração com dados fictícios.</b> Recriação do layout de um painel que desenvolvi em Power BI; nomes, números e sistemas são inventados.</span>
+  <a href="../index.html#projetos">← Voltar ao portfólio</a>
+</div>
+
+<div class="stage">
+  <div class="report">
+
+    <!-- ===== INÍCIO ===== -->
+    <section class="page" id="page-inicio" data-title="Início">
+      <div class="cover">
+        <div class="cover-left">
+          <div class="brand"><div class="brand-mark">GC</div>Gestão de<br>Chamados</div>
+          <h1>Painel de Gestão de Chamados</h1>
+          <p>Acompanhamento das tarefas e chamados de suporte por nível de atendimento, grupo solucionador e sistema, com evolução mensal e indicadores de SLA.</p>
+          <p style="font-size:13px;">Fonte original: GLPI (MySQL) · Ferramenta: Power BI</p>
+        </div>
+        <div class="cover-right">
+          <button class="cover-btn" data-goto="page-tarefas">Tarefas<span>Criadas, feitas e pendentes, evolução mensal e volume por sistema</span></button>
+          <button class="cover-btn" data-goto="page-chamados">Chamados<span>Tempo de resolução, SLA, distribuição por grupo e nível, últimos chamados</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAREFAS ===== -->
+    <section class="page" id="page-tarefas" data-title="Tarefas">
+      <div class="grid-top">
+        <div>
+          <div class="header-tile">
+            <div class="brand"><div class="brand-mark">GC</div>Gestão de<br>Chamados</div>
+            <h1>TAREFAS</h1>
+            <div class="brand" style="opacity:.6">Dados<br>fictícios</div>
+          </div>
+          <div class="kpis">
+            <div class="tile kpi"><div class="tile-title">Tarefas Criadas</div><div class="val" id="kpiCriadas">0</div></div>
+            <div class="tile kpi"><div class="tile-title">Tarefas Feitas</div><div class="val" id="kpiFeitas">0</div></div>
+            <div class="tile kpi"><div class="tile-title">Tarefas Pendentes</div><div class="val" id="kpiPendentes">0</div></div>
+          </div>
+          <div class="tile period">
+            <div class="tile-title">Período de atendimento dos chamados</div>
+            <div class="filter-body">
+              <input type="date" id="dtIni" aria-label="Data inicial" />
+              <input type="date" id="dtFim" aria-label="Data final" />
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="header-tile" style="justify-content:center;">
+            <h2>PAINEL DE GESTÃO DE CHAMADOS</h2>
+          </div>
+          <div class="filters">
+            <div class="tile">
+              <div class="tile-title">Nível</div>
+              <div class="filter-body" id="fNivel"></div>
+            </div>
+            <div class="stack">
+              <div class="tile">
+                <div class="tile-title">Grupos</div>
+                <div class="filter-body"><select id="fGrupo"></select></div>
+              </div>
+              <div class="tile">
+                <div class="tile-title">Sistemas</div>
+                <div class="filter-body"><select id="fSistema"></select></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-bottom">
+        <div class="tile">
+          <div class="tile-title">Análise Mensal de Tarefas por Status</div>
+          <div class="chart-box"><canvas id="chartMensal"></canvas></div>
+        </div>
+        <div class="tile">
+          <div class="tile-title">QUANTIDADE DE TAREFAS POR SISTEMAS</div>
+          <div class="treemap" id="treemap"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CHAMADOS ===== -->
+    <section class="page" id="page-chamados" data-title="Chamados">
+      <div class="header-tile">
+        <div class="brand"><div class="brand-mark">GC</div>Gestão de<br>Chamados</div>
+        <h1>CHAMADOS</h1>
+        <div class="brand" style="opacity:.6">Mesmos filtros<br>da aba Tarefas</div>
+      </div>
+      <div class="kpis-4">
+        <div class="tile kpi"><div class="tile-title">Chamados no período</div><div class="val" id="kpiTotal">0</div></div>
+        <div class="tile kpi"><div class="tile-title">Dentro do SLA</div><div class="val" id="kpiSla">0%</div></div>
+        <div class="tile kpi"><div class="tile-title">Tempo médio de resolução</div><div class="val" id="kpiTempo">0</div><div class="sub">dias</div></div>
+        <div class="tile kpi"><div class="tile-title">Backlog N3</div><div class="val" id="kpiBacklog">0</div></div>
+      </div>
+      <div class="grid-3">
+        <div class="tile">
+          <div class="tile-title">Chamados por Grupo Solucionador</div>
+          <div class="chart-box"><canvas id="chartGrupo"></canvas></div>
+        </div>
+        <div class="tile">
+          <div class="tile-title">Distribuição por Nível</div>
+          <div class="chart-box"><canvas id="chartNivel"></canvas></div>
+        </div>
+      </div>
+      <div class="tile" style="margin-top:16px;">
+        <div class="tile-title">Últimos chamados</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nº</th><th>Abertura</th><th>Nível</th><th>Grupo</th><th>Sistema</th><th>Categoria</th><th>Status</th></tr></thead>
+            <tbody id="tbChamados"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <button class="nav-arrow prev" id="btnPrev" aria-label="Página anterior">←</button>
+    <button class="nav-arrow next" id="btnNext" aria-label="Próxima página">→</button>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs"></nav>
+
+<script src="lib/chart.umd.js"></script>
+<script>
+/* ==========================================================
+   1) DADOS FICTÍCIOS (gerados com semente fixa)
+   ========================================================== */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rnd = mulberry32(2024);
+function pick(lista, pesos) {
+  const total = pesos.reduce((a, b) => a + b, 0);
+  let r = rnd() * total;
+  for (let i = 0; i < lista.length; i++) { r -= pesos[i]; if (r <= 0) return lista[i]; }
+  return lista[lista.length - 1];
+}
+
+const NIVEIS = ["(Em branco)", "N1", "N2", "N3"];
+const GRUPOS = ["Atendimento ao Usuário", "Sistemas Corporativos", "Infraestrutura", "Banco de Dados", "Qualidade e Testes"];
+const SISTEMAS = ["Outros Sistemas", "Sistema de Mandados", "Sistema de Execução", "Cadastro Nacional", "Portal do Servidor", "Gestão Documental"];
+const CATEGORIAS = ["Acesso e permissões", "Erro no sistema", "Dúvida de uso", "Correção de dados", "Solicitação de relatório", "Instabilidade"];
+
+const INICIO = new Date(2024, 7, 26);   // 26/08/2024
+const FIM = new Date(2025, 7, 18);      // 18/08/2025
+const DIA = 86400000;
+const totalDias = Math.round((FIM - INICIO) / DIA);
+
+// Volume cresce até abril/2025 e volta a cair (como no painel original)
+function pesoDoDia(d) {
+  const x = d / totalDias;
+  return 0.35 + 1.6 * Math.exp(-Math.pow((x - 0.66) / 0.2, 2));
+}
+const pesosDias = Array.from({ length: totalDias + 1 }, (_, d) => pesoDoDia(d));
+const diasIdx = pesosDias.map((_, i) => i);
+
+const chamados = [];
+for (let i = 0; i < 2554; i++) {
+  const d = pick(diasIdx, pesosDias);
+  const abertura = new Date(INICIO.getTime() + d * DIA);
+  const nivel = pick(NIVEIS, [3, 30, 27, 40]);
+  const sistema = pick(SISTEMAS, [46, 34, 8, 6, 4, 2]);
+  const grupo = pick(GRUPOS, [26, 30, 18, 14, 12]);
+  const categoria = pick(CATEGORIAS, [24, 22, 18, 16, 12, 8]);
+  const diasAberto = (FIM - abertura) / DIA;
+  // quanto mais antigo, maior a chance de já estar resolvido
+  const chanceResolvido = Math.min(0.95, 0.2 + diasAberto / 260);
+  const resolvido = rnd() < chanceResolvido;
+  const prazo = { "(Em branco)": 5, N1: 2, N2: 5, N3: 10 }[nivel];
+  const tempo = resolvido ? Math.max(0.2, Math.min(diasAberto, -Math.log(1 - rnd()) * prazo * 0.9)) : null;
+  chamados.push({
+    id: 100000 + i,
+    abertura, nivel, grupo, sistema, categoria,
+    resolvido,
+    tempo,
+    noSla: resolvido && tempo <= prazo
+  });
+}
+chamados.sort((a, b) => a.abertura - b.abertura);
+chamados.forEach((c, i) => c.id = 240001 + i);
+
+/* ==========================================================
+   2) FILTROS
+   ========================================================== */
+const filtro = {
+  niveis: new Set(["N3"]),
+  grupo: "Todos",
+  sistema: "Todos",
+  ini: new Date(INICIO),
+  fim: new Date(FIM)
+};
+const toISO = d => d.toISOString().slice(0, 10);
+const fmt = n => n.toLocaleString("pt-BR");
+const fmtData = d => d.toLocaleDateString("pt-BR");
+
+function montarFiltros() {
+  const caixa = document.getElementById("fNivel");
+  NIVEIS.forEach(n => {
+    const id = "nv-" + n.replace(/\W/g, "");
+    caixa.insertAdjacentHTML("beforeend",
+      `<label for="${id}"><input type="checkbox" id="${id}" value="${n}" ${filtro.niveis.has(n) ? "checked" : ""}> ${n}</label>`);
+  });
+  caixa.addEventListener("change", e => {
+    if (e.target.checked) filtro.niveis.add(e.target.value); else filtro.niveis.delete(e.target.value);
+    atualizar();
+  });
+
+  const preencher = (sel, lista) => {
+    sel.innerHTML = ["Todos", ...lista].map(v => `<option>${v}</option>`).join("");
+  };
+  const fGrupo = document.getElementById("fGrupo");
+  const fSistema = document.getElementById("fSistema");
+  preencher(fGrupo, GRUPOS);
+  preencher(fSistema, SISTEMAS);
+  fGrupo.onchange = () => { filtro.grupo = fGrupo.value; atualizar(); };
+  fSistema.onchange = () => { filtro.sistema = fSistema.value; atualizar(); };
+
+  const dtIni = document.getElementById("dtIni");
+  const dtFim = document.getElementById("dtFim");
+  dtIni.value = toISO(INICIO); dtIni.min = toISO(INICIO); dtIni.max = toISO(FIM);
+  dtFim.value = toISO(FIM); dtFim.min = toISO(INICIO); dtFim.max = toISO(FIM);
+  dtIni.onchange = () => { if (dtIni.value) { filtro.ini = new Date(dtIni.value + "T00:00:00"); atualizar(); } };
+  dtFim.onchange = () => { if (dtFim.value) { filtro.fim = new Date(dtFim.value + "T23:59:59"); atualizar(); } };
+}
+
+function filtrados({ ignorarSistema = false, ignorarNivel = false } = {}) {
+  return chamados.filter(c =>
+    (ignorarNivel || filtro.niveis.size === 0 || filtro.niveis.has(c.nivel)) &&
+    (filtro.grupo === "Todos" || c.grupo === filtro.grupo) &&
+    (ignorarSistema || filtro.sistema === "Todos" || c.sistema === filtro.sistema) &&
+    c.abertura >= filtro.ini && c.abertura <= filtro.fim
+  );
+}
+
+/* ==========================================================
+   3) VISUAIS
+   ========================================================== */
+Chart.defaults.font.family = '"Segoe UI", Arial, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = "#5b6878";
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+let chartMensal, chartGrupo, chartNivel;
+
+function atualizarTarefas(lista) {
+  const feitas = lista.filter(c => c.resolvido).length;
+  document.getElementById("kpiCriadas").textContent = fmt(lista.length);
+  document.getElementById("kpiFeitas").textContent = fmt(feitas);
+  document.getElementById("kpiPendentes").textContent = fmt(lista.length - feitas);
+
+  // Série mensal
+  const meses = [];
+  const cursor = new Date(filtro.ini.getFullYear(), filtro.ini.getMonth(), 1);
+  while (cursor <= filtro.fim) { meses.push(new Date(cursor)); cursor.setMonth(cursor.getMonth() + 1); }
+  const chave = d => d.getFullYear() * 12 + d.getMonth();
+  const idx = new Map(meses.map((m, i) => [chave(m), i]));
+  const criadas = meses.map(() => 0), pend = meses.map(() => 0), resolv = meses.map(() => 0);
+  lista.forEach(c => {
+    const i = idx.get(chave(c.abertura));
+    if (i === undefined) return;
+    criadas[i]++;
+    if (c.resolvido) resolv[i]++; else pend[i]++;
+  });
+  const meta = Math.round(criadas.reduce((a, b) => a + b, 0) / Math.max(1, meses.length) * 0.55);
+  const labels = meses.map(m => [MESES[m.getMonth()], String(m.getFullYear())]);
+
+  const dados = {
+    labels,
+    datasets: [
+      { label: "Tarefas Criadas", data: criadas, borderColor: "#0b2a4a", backgroundColor: "#0b2a4a" },
+      { label: "Tarefas Pendentes", data: pend, borderColor: "#1e7be0", backgroundColor: "#1e7be0" },
+      { label: "Tarefas Resolvidas", data: resolv, borderColor: "#123b2a", backgroundColor: "#123b2a" },
+      { label: "Meta", data: meses.map(() => meta), borderColor: "#3f8f4f", backgroundColor: "#3f8f4f" }
+    ]
+  };
+  if (!chartMensal) {
+    chartMensal = new Chart(document.getElementById("chartMensal"), {
+      type: "line",
+      data: dados,
+      options: {
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        elements: { point: { radius: 3 }, line: { borderWidth: 2, tension: .25 } },
+        plugins: { legend: { position: "top", align: "start", labels: { boxWidth: 8, usePointStyle: true } } },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: "Número de Tarefas" }, grid: { color: "#eef1f5" } },
+          x: { grid: { display: false }, title: { display: true, text: "Período (Ano - Mês)" } }
+        }
+      }
+    });
+  } else {
+    chartMensal.data = dados;
+    chartMensal.update();
+  }
+
+  desenharTreemap(filtrados({ ignorarSistema: true }));
+}
+
+/* Treemap simples: divide recursivamente pelo lado maior */
+function layoutTreemap(itens, x, y, w, h, saida) {
+  if (!itens.length) return;
+  if (itens.length === 1) { saida.push({ ...itens[0], x, y, w, h }); return; }
+  const total = itens.reduce((a, b) => a + b.valor, 0);
+  let acc = 0, corte = 0;
+  for (; corte < itens.length - 1; corte++) {
+    if (acc + itens[corte].valor > total / 2 && corte > 0) break;
+    acc += itens[corte].valor;
+  }
+  const a = itens.slice(0, corte), b = itens.slice(corte);
+  const fr = acc / total;
+  if (w >= h) {
+    layoutTreemap(a, x, y, w * fr, h, saida);
+    layoutTreemap(b, x + w * fr, y, w * (1 - fr), h, saida);
+  } else {
+    layoutTreemap(a, x, y, w, h * fr, saida);
+    layoutTreemap(b, x, y + h * fr, w, h * (1 - fr), saida);
+  }
+}
+const CORES_TM = ["#0b3a6e", "#1e88ff", "#1f5a3e", "#5aa46b", "#163d66", "#4aa3ff"];
+function desenharTreemap(lista) {
+  const el = document.getElementById("treemap");
+  const contagem = SISTEMAS.map((s, i) => ({ nome: s, cor: CORES_TM[i], valor: lista.filter(c => c.sistema === s).length }))
+    .filter(i => i.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
+  const caixas = [];
+  layoutTreemap(contagem, 0, 0, 100, 100, caixas);
+  el.innerHTML = caixas.map(c => `
+    <div class="tm-cell ${filtro.sistema !== "Todos" && filtro.sistema !== c.nome ? "dim" : ""}"
+         style="left:${c.x}%;top:${c.y}%;width:${c.w}%;height:${c.h}%;background:${c.cor}"
+         title="${c.nome}: ${fmt(c.valor)} tarefas" data-sistema="${c.nome}">
+      ${c.w > 9 && c.h > 12 ? c.nome : ""}
+      ${c.w > 9 && c.h > 20 ? `<span class="tm-val">${fmt(c.valor)}</span>` : ""}
+    </div>`).join("");
+}
+document.getElementById("treemap").addEventListener("click", e => {
+  const cel = e.target.closest(".tm-cell");
+  if (!cel) return;
+  // Clique no treemap filtra o sistema (clicar de novo limpa), como no Power BI
+  filtro.sistema = filtro.sistema === cel.dataset.sistema ? "Todos" : cel.dataset.sistema;
+  document.getElementById("fSistema").value = filtro.sistema;
+  atualizar();
+});
+
+function atualizarChamados(lista) {
+  const resolvidos = lista.filter(c => c.resolvido);
+  const sla = resolvidos.length ? resolvidos.filter(c => c.noSla).length / resolvidos.length : 0;
+  const tempo = resolvidos.length ? resolvidos.reduce((a, c) => a + c.tempo, 0) / resolvidos.length : 0;
+  document.getElementById("kpiTotal").textContent = fmt(lista.length);
+  document.getElementById("kpiSla").textContent = (sla * 100).toFixed(1).replace(".", ",") + "%";
+  document.getElementById("kpiTempo").textContent = tempo.toFixed(1).replace(".", ",");
+  document.getElementById("kpiBacklog").textContent = fmt(lista.filter(c => c.nivel === "N3" && !c.resolvido).length);
+
+  const porGrupo = GRUPOS.map(g => ({
+    g,
+    res: lista.filter(c => c.grupo === g && c.resolvido).length,
+    pen: lista.filter(c => c.grupo === g && !c.resolvido).length
+  }));
+  const dadosGrupo = {
+    labels: porGrupo.map(p => p.g),
+    datasets: [
+      { label: "Resolvidos", data: porGrupo.map(p => p.res), backgroundColor: "#0b2a4a" },
+      { label: "Pendentes", data: porGrupo.map(p => p.pen), backgroundColor: "#1e7be0" }
+    ]
+  };
+  if (!chartGrupo) {
+    chartGrupo = new Chart(document.getElementById("chartGrupo"), {
+      type: "bar",
+      data: dadosGrupo,
+      options: {
+        indexAxis: "y",
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "top", align: "start", labels: { boxWidth: 10 } } },
+        scales: { x: { stacked: true, grid: { color: "#eef1f5" } }, y: { stacked: true, grid: { display: false } } }
+      }
+    });
+  } else { chartGrupo.data = dadosGrupo; chartGrupo.update(); }
+
+  // A rosca mostra todos os níveis; os não selecionados no filtro ficam esmaecidos
+  const todosNiveis = filtrados({ ignorarNivel: true });
+  const coresNivel = ["#b7c0cb", "#4aa3ff", "#1e7be0", "#0b2a4a"];
+  const dadosNivel = {
+    labels: NIVEIS,
+    datasets: [{
+      data: NIVEIS.map(n => todosNiveis.filter(c => c.nivel === n).length),
+      backgroundColor: NIVEIS.map((n, i) => filtro.niveis.size === 0 || filtro.niveis.has(n) ? coresNivel[i] : coresNivel[i] + "40"),
+      borderWidth: 2,
+      borderColor: "#fff"
+    }]
+  };
+  if (!chartNivel) {
+    chartNivel = new Chart(document.getElementById("chartNivel"), {
+      type: "doughnut",
+      data: dadosNivel,
+      options: { maintainAspectRatio: false, cutout: "58%", plugins: { legend: { position: "right", labels: { boxWidth: 10 } } } }
+    });
+  } else { chartNivel.data = dadosNivel; chartNivel.update(); }
+
+  const ultimos = lista.slice(-40).reverse();
+  document.getElementById("tbChamados").innerHTML = ultimos.map(c => `
+    <tr>
+      <td>${c.id}</td>
+      <td>${fmtData(c.abertura)}</td>
+      <td>${c.nivel}</td>
+      <td>${c.grupo}</td>
+      <td>${c.sistema}</td>
+      <td>${c.categoria}</td>
+      <td>${c.resolvido ? '<span class="pill ok">Resolvido</span>' : '<span class="pill pend">Pendente</span>'}</td>
+    </tr>`).join("") || `<tr><td colspan="7">Nenhum chamado para os filtros selecionados.</td></tr>`;
+}
+
+function atualizar() {
+  const lista = filtrados();
+  atualizarTarefas(lista);
+  atualizarChamados(lista);
+}
+
+/* ==========================================================
+   4) NAVEGAÇÃO ENTRE PÁGINAS
+   ========================================================== */
+const paginas = [...document.querySelectorAll(".page")];
+const tabs = document.getElementById("tabs");
+paginas.forEach(p => {
+  const b = document.createElement("button");
+  b.textContent = p.dataset.title;
+  b.onclick = () => irPara(p.id);
+  b.dataset.page = p.id;
+  tabs.appendChild(b);
+});
+function irPara(id) {
+  paginas.forEach(p => p.classList.toggle("active", p.id === id));
+  tabs.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.page === id));
+  [chartMensal, chartGrupo, chartNivel].forEach(c => c && c.resize());
+  history.replaceState(null, "", "#" + id.replace("page-", ""));
+}
+function passo(delta) {
+  const atual = paginas.findIndex(p => p.classList.contains("active"));
+  irPara(paginas[(atual + delta + paginas.length) % paginas.length].id);
+}
+document.getElementById("btnPrev").onclick = () => passo(-1);
+document.getElementById("btnNext").onclick = () => passo(1);
+document.querySelectorAll("[data-goto]").forEach(b => b.onclick = () => irPara(b.dataset.goto));
+
+montarFiltros();
+atualizar();
+const inicial = "page-" + (location.hash.slice(1) || "tarefas");
+irPara(paginas.some(p => p.id === inicial) ? inicial : "page-tarefas");
+</script>
+</body>
+</html>

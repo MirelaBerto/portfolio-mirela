@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Indicadores e Histórico — Demo</title>
+<meta name="description" content="Demonstração com dados fictícios de um painel de indicadores e integração de dados feito em Qlik Sense por Mirela Berto." />
+<style>
+  :root {
+    --q-green: #009845;
+    --q-green-dark: #007a37;
+    --q-sel: #009845;
+    --q-alt: #ffffff;
+    --q-excl: #d9d9d9;
+    --q-excl-text: #8a8a8a;
+    --teal: #4a8fa1;
+    --teal-dark: #2f6f80;
+    --ink: #404040;
+    --muted: #7b7b7b;
+    --line: #e4e4e4;
+    --panel: #ffffff;
+    --sheet: #f2f2f2;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Source Sans Pro", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--sheet);
+    color: var(--ink);
+    font-size: 13px;
+  }
+
+  .demo-bar {
+    background: #fff7e0;
+    border-bottom: 1px solid #f0d995;
+    color: #6b5200;
+    padding: 8px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .demo-bar a { color: #6b5200; font-weight: 600; }
+
+  /* Barra superior no estilo Qlik Sense */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 14px;
+    height: 46px;
+  }
+  .q-logo { font-weight: 800; font-size: 20px; color: var(--q-green); letter-spacing: -.5px; }
+  .q-logo span { color: #555; font-weight: 400; font-size: 13px; margin-left: 4px; }
+  .q-tab { font-size: 12px; color: var(--muted); line-height: 1.1; padding: 6px 0; border-bottom: 2px solid transparent; }
+  .q-tab b { display: block; color: var(--ink); font-weight: 600; }
+  .q-tab.on { border-bottom-color: var(--q-green); }
+  .q-title { flex: 1; text-align: center; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Barra de seleções */
+  .selbar {
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+    flex-wrap: wrap;
+  }
+  .selbar .hint { color: var(--muted); font-style: italic; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #cfcfcf;
+    border-left: 4px solid var(--q-green);
+    border-radius: 2px;
+    padding: 2px 6px 2px 8px;
+    background: #fafafa;
+    line-height: 1.2;
+  }
+  .chip small { display: block; color: var(--muted); font-size: 10px; }
+  .chip button, .clear-all {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    padding: 0 2px;
+  }
+  .clear-all { font-size: 12px; text-decoration: underline; margin-left: auto; }
+
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 4px;
+  }
+  .sheet-head h1 { margin: 0; font-size: 18px; font-weight: 600; color: #333; }
+  .sheet-head .arrows { color: var(--muted); font-size: 16px; letter-spacing: 8px; }
+
+  /* Grade da pasta */
+  .sheet {
+    display: grid;
+    gap: 8px;
+    padding: 6px 14px 18px;
+    grid-template-columns: 1.15fr 1fr 1fr;
+  }
+  .obj {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    min-width: 0;
+  }
+  .obj h3 { margin: 0 0 6px; font-size: 14px; font-weight: 400; color: #595959; }
+  .chart { position: relative; height: 220px; }
+  .chart.sm { height: 130px; }
+  .chart.lg { height: 250px; }
+
+  .top-row { grid-column: 1 / -1; display: grid; gap: 8px; grid-template-columns: 1fr 1fr 0.8fr 0.8fr 1.3fr; }
+  .brand-box {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; color: #333; font-size: 15px; line-height: 1.1;
+  }
+  .brand-box .mk {
+    width: 54px; height: 44px; border-radius: 4px;
+    background: linear-gradient(135deg, #3d3d3d, #6b6b6b);
+    color: #fff; display: grid; place-items: center; font-weight: 800; letter-spacing: -1px; font-size: 20px;
+  }
+  .brand-box .mk.alt { background: linear-gradient(135deg, var(--teal-dark), var(--teal)); }
+  .brand-box small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+  .kpi { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .kpi .lbl { font-size: 17px; color: #666; }
+  .kpi .num { font-size: 40px; color: var(--teal-dark); font-weight: 300; line-height: 1.1; }
+
+  /* Painel de filtro (listbox) */
+  .listbox { border: 1px solid var(--line); background: #fff; min-width: 0; }
+  .top-row > * { min-width: 0; }
+  .listbox .lb-head {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-bottom: 1px solid var(--line); font-weight: 600; font-size: 12px;
+  }
+  .listbox input {
+    flex: 1; min-width: 0; width: 100%; border: 0; outline: 0; font: inherit; font-weight: 400; font-size: 12px; color: var(--ink);
+  }
+  .listbox ul { list-style: none; margin: 0; padding: 0; max-height: 108px; overflow: auto; }
+  .listbox li {
+    padding: 3px 8px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 12px;
+  }
+  .listbox li.sel { background: var(--q-sel); color: #fff; }
+  .listbox li.excl { background: var(--q-excl); color: var(--q-excl-text); }
+  .listbox li:hover:not(.sel) { filter: brightness(.96); }
+
+  /* Tabelas */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    text-align: left; font-weight: 600; color: #555;
+    border-bottom: 2px solid #cfcfcf; padding: 5px 6px; white-space: nowrap; position: sticky; top: 0; background: #fff;
+  }
+  th.num, td.num { text-align: right; }
+  td { padding: 4px 6px; border-bottom: 1px solid #efefef; }
+  tr.total td { font-weight: 700; border-bottom: 1px solid #cfcfcf; }
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable:hover td { background: #f1f8f4; }
+  .scroll { max-height: 190px; overflow: auto; }
+  .scroll.tall { max-height: 260px; }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 8px 0 2px; }
+  .q-btn {
+    background: var(--teal); color: #fff; border: 0; border-radius: 3px;
+    font: inherit; font-size: 12px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+  }
+  .q-btn:hover { background: var(--teal-dark); }
+
+  .col { display: grid; gap: 8px; align-content: start; min-width: 0; }
+
+  @media (max-width: 1100px) {
+    .sheet { grid-template-columns: 1fr 1fr; }
+    .top-row { grid-template-columns: 1fr 1fr 1fr; }
+    .top-row .kpi { grid-column: 1 / -1; }
+    .col.c3 { grid-column: 1 / -1; }
+  }
+  @media (max-width: 720px) {
+    .sheet { grid-template-columns: 1fr; padding: 6px 8px 18px; }
+    .top-row { grid-template-columns: 1fr 1fr; }
+    .top-row .brand-box { display: none; }
+    .q-tab, .q-title { display: none; }
+    .kpi .num { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span>⚠️ <b>Demonstração com dados fictícios.</b> Recriação do layout de um painel que desenvolvi em Qlik Sense; tribunais, unidades e números são inventados.</span>
+  <a href="../index.html#projetos">← Voltar ao portfólio</a>
+</div>
+
+<header class="topbar">
+  <div class="q-logo">Qlik<span>···</span></div>
+  <div class="q-tab on"><b>Analisar</b>Pasta</div>
+  <div class="q-tab"><b>Narrar</b>Narrativa</div>
+  <div class="q-title">Monitoramento de Sistemas — Integração de Bases (demo)</div>
+</header>
+
+<div class="selbar" id="selbar"></div>
+
+<div class="sheet-head">
+  <h1>Indicadores e histórico</h1>
+  <span class="arrows">‹ ›</span>
+</div>
+
+<main class="sheet">
+  <!-- Linha de topo -->
+  <div class="top-row">
+    <div class="obj brand-box"><div class="mk">MS</div><div>Monitoramento<br>de Sistemas<small>Painel de demonstração</small></div></div>
+    <div class="obj brand-box"><div class="mk alt">BN</div><div>Base Nacional<small>x Base de Execução</small></div></div>
+    <div class="listbox" id="lbRamo"></div>
+    <div class="listbox" id="lbTribunal"></div>
+    <div class="obj kpi">
+      <div class="lbl">Total de pessoas presas na base</div>
+      <div class="num" id="kpiTotal">0</div>
+    </div>
+  </div>
+
+  <!-- Coluna 1 -->
+  <div class="col">
+    <div class="obj">
+      <h3>Diferença Base Nacional x Base de Execução</h3>
+      <div class="chart"><canvas id="chDiferenca"></canvas></div>
+    </div>
+    <div class="obj">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Tribunal</th><th class="num">Base de Execução</th><th class="num">Base Nacional</th><th class="num">Convergência</th></tr></thead>
+          <tbody id="tbTribunais"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="q-btn" id="btnCsv">⬇ Exportar tabela (CSV)</button>
+      </div>
+    </div>
+    <div class="obj">
+      <h3>Cadastros duplicados por mês</h3>
+      <div class="chart sm"><canvas id="chDuplicados"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Coluna 2 -->
+  <div class="col">
+    <div class="obj">
+      <h3>Presos preventivos por tempo de prisão</h3>
+      <div class="chart lg"><canvas id="chPreventivos"></canvas></div>
+    </div>
+    <div class="obj">
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Tempo de prisão</th><th class="num">Presos</th><th class="num">% do total</th></tr></thead>
+          <tbody id="tbTempo"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coluna 3 -->
+  <div class="col c3">
+    <div class="obj">
+      <h3>Presos preventivos por faixa de tempo</h3>
+      <div class="chart lg"><canvas id="chFaixas"></canvas></div>
+    </div>
+    <div class="obj">
+      <div class="scroll tall">
+        <table>
+          <thead><tr><th>Unidade judicial</th><th>Tempo de prisão (maior faixa)</th></tr></thead>
+          <tbody id="tbUnidades"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="lib/chart.umd.js"></script>
+<script>
+/* ==========================================================
+   1) DADOS FICTÍCIOS (semente fixa = sempre os mesmos números)
+   ========================================================== */
+function mulberry32(seed) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rnd = mulberry32(7);
+const entre = (a, b) => a + rnd() * (b - a);
+
+const FAIXAS = [
+  "Inferior a 90 dias", "Superior a 90 dias", "Superior a 6 meses",
+  "Superior a 1 ano", "Superior a 2 anos", "Superior a 3 anos", "Superior a 4 anos"
+];
+const PESO_FAIXA = [70, 42, 37, 22, 7, 4, 2];
+
+const TRIBUNAIS = [
+  ["TJ-A", "Justiça Estadual", 118000], ["TJ-B", "Justiça Estadual", 96000], ["TJ-C", "Justiça Estadual", 88000],
+  ["TJ-D", "Justiça Estadual", 74000], ["TJ-E", "Justiça Estadual", 69000], ["TJ-F", "Justiça Estadual", 61000],
+  ["TJ-G", "Justiça Estadual", 55000], ["TJ-H", "Justiça Estadual", 47000], ["TJ-I", "Justiça Estadual", 39000],
+  ["TJ-J", "Justiça Estadual", 33000], ["TJ-K", "Justiça Estadual", 28000], ["TJ-L", "Justiça Estadual", 21000],
+  ["TRF-1", "Justiça Federal", 9800], ["TRF-2", "Justiça Federal", 7400], ["TRF-3", "Justiça Federal", 6100],
+  ["TJM-A", "Justiça Militar", 1200], ["TJM-B", "Justiça Militar", 800]
+].map(([nome, ramo, base]) => ({ nome, ramo, base }));
+
+const MESES = [];
+for (let i = 12; i >= 0; i--) {
+  const d = new Date(2025, 7 - i, 1);
+  MESES.push(d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(".", ""));
+}
+
+TRIBUNAIS.forEach(t => {
+  // Base Nacional x Base de Execução: diferença que vai diminuindo com a integração
+  t.nacional = [];
+  t.execucao = [];
+  t.duplicados = [];
+  let fator = entre(1.08, 1.32);
+  const piso = entre(1.004, 1.07);   // nenhum tribunal fica 100% convergente
+  MESES.forEach((_, m) => {
+    const nac = Math.round(t.base * entre(0.985, 1.015) * (1 + m * 0.002));
+    fator = Math.max(piso, fator - entre(0.004, 0.018));
+    t.nacional.push(nac);
+    t.execucao.push(Math.round(nac / fator));
+    t.duplicados.push(Math.round(t.base * entre(0.0008, 0.004) * (1 - m / 18)));
+  });
+  // Preventivos por faixa de tempo (mês atual) e percentual de preventivos ao longo dos meses
+  const prev = t.nacional[MESES.length - 1] * entre(0.2, 0.34);
+  const pesos = PESO_FAIXA.map(p => p * entre(0.7, 1.3));
+  const soma = pesos.reduce((a, b) => a + b, 0);
+  t.faixas = pesos.map(p => Math.round(prev * p / soma));
+  t.serieFaixas = FAIXAS.map((_, f) =>
+    MESES.map((__, m) => +(pesos[f] / soma * 100 * entre(0.85, 1.15) * (1 + Math.sin((m + f) / 2) * 0.06)).toFixed(2))
+  );
+  // Unidades judiciais fictícias
+  const qtd = Math.max(2, Math.round(Math.log(t.base) - 6));
+  t.unidades = Array.from({ length: qtd }, (_, i) => ({
+    nome: `${i + 1}ª Vara Criminal da Comarca de ${["Vale Verde", "Porto Alto", "Serra Azul", "Rio Claro", "Campo Belo", "Lagoa Nova", "Monte Sul", "Bela Vista"][i % 8]} (${t.nome})`,
+    faixa: FAIXAS[Math.min(6, Math.floor(Math.pow(rnd(), 1.6) * 7))]
+  }));
+});
+
+/* ==========================================================
+   2) SELEÇÕES NO ESTILO QLIK
+   ========================================================== */
+const sel = { ramo: new Set(), tribunal: new Set(), faixa: new Set() };
+const NOME_CAMPO = { ramo: "Ramo", tribunal: "Tribunal", faixa: "Tempo de prisão" };
+const fmt = n => Math.round(n).toLocaleString("pt-BR");
+const pct = n => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+
+function tribunaisPossiveis() {
+  return TRIBUNAIS.filter(t =>
+    (sel.ramo.size === 0 || sel.ramo.has(t.ramo)) &&
+    (sel.tribunal.size === 0 || sel.tribunal.has(t.nome))
+  );
+}
+function faixasAtivas() {
+  return FAIXAS.map((f, i) => i).filter(i => sel.faixa.size === 0 || sel.faixa.has(FAIXAS[i]));
+}
+function alternar(campo, valor) {
+  if (sel[campo].has(valor)) sel[campo].delete(valor); else sel[campo].add(valor);
+  render();
+}
+
+function montarListbox(id, campo, valores, possiveis) {
+  const el = document.getElementById(id);
+  const busca = el.querySelector("input") ? el.querySelector("input").value : "";
+  el.innerHTML = `
+    <div class="lb-head">🔍 <input placeholder="${NOME_CAMPO[campo]}" value="${busca}" aria-label="Pesquisar ${NOME_CAMPO[campo]}"></div>
+    <ul></ul>`;
+  const ul = el.querySelector("ul");
+  const desenhar = () => {
+    const termo = el.querySelector("input").value.toLowerCase();
+    // Ordem do Qlik: selecionados, possíveis e por último excluídos
+    const ordem = v => sel[campo].has(v) ? 0 : possiveis.has(v) ? 1 : 2;
+    ul.innerHTML = valores
+      .filter(v => v.toLowerCase().includes(termo))
+      .sort((a, b) => ordem(a) - ordem(b))
+      .map(v => `<li data-v="${v}" class="${sel[campo].has(v) ? "sel" : possiveis.has(v) ? "" : "excl"}">${v}</li>`)
+      .join("");
+  };
+  desenhar();
+  el.querySelector("input").addEventListener("input", desenhar);
+  ul.addEventListener("click", e => { const li = e.target.closest("li"); if (li) alternar(campo, li.dataset.v); });
+}
+
+function renderSelbar() {
+  const el = document.getElementById("selbar");
+  const chips = Object.keys(sel).filter(c => sel[c].size).map(c => {
+    const vals = [...sel[c]];
+    const texto = vals.length > 2 ? `${vals.length} de ${c === "faixa" ? FAIXAS.length : c === "ramo" ? 3 : TRIBUNAIS.length}` : vals.join(", ");
+    return `<span class="chip"><span><small>${NOME_CAMPO[c]}</small>${texto}</span><button data-c="${c}" title="Limpar seleção">✕</button></span>`;
+  });
+  el.innerHTML = chips.length
+    ? chips.join("") + `<button class="clear-all" id="clearAll">Limpar todas as seleções</button>`
+    : `<span class="hint">Nenhuma seleção aplicada — clique nos tribunais, no ramo ou nas barras para filtrar.</span>`;
+  el.querySelectorAll(".chip button").forEach(b => b.onclick = () => { sel[b.dataset.c].clear(); render(); });
+  const clr = document.getElementById("clearAll");
+  if (clr) clr.onclick = () => { Object.values(sel).forEach(s => s.clear()); render(); };
+}
+
+/* ==========================================================
+   3) GRÁFICOS
+   ========================================================== */
+Chart.defaults.font.family = '"Source Sans Pro", "Segoe UI", Arial, sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = "#7b7b7b";
+const CORES_LINHAS = ["#4a8fa1", "#c74b7a", "#e8a33d", "#6b5fb5", "#3e9e6a", "#d0603f", "#8a8a8a"];
+const charts = {};
+
+function chart(id, config) {
+  if (charts[id]) {
+    charts[id].data = config.data;
+    charts[id].options = config.options;
+    charts[id].update();
+  } else {
+    charts[id] = new Chart(document.getElementById(id), config);
+  }
+}
+
+function render() {
+  const lista = tribunaisPossiveis();
+  const fx = faixasAtivas();
+  const ultimo = MESES.length - 1;
+
+  // Listboxes (Ramo influencia os tribunais possíveis e vice-versa)
+  const ramosPossiveis = new Set(TRIBUNAIS.filter(t => sel.tribunal.size === 0 || sel.tribunal.has(t.nome)).map(t => t.ramo));
+  const tribPossiveis = new Set(TRIBUNAIS.filter(t => sel.ramo.size === 0 || sel.ramo.has(t.ramo)).map(t => t.nome));
+  montarListbox("lbRamo", "ramo", ["Justiça Estadual", "Justiça Federal", "Justiça Militar"], ramosPossiveis);
+  montarListbox("lbTribunal", "tribunal", TRIBUNAIS.map(t => t.nome), tribPossiveis);
+  renderSelbar();
+
+  // KPI
+  const total = lista.reduce((a, t) => a + t.nacional[ultimo], 0);
+  document.getElementById("kpiTotal").textContent = fmt(total);
+
+  // Diferença (%) por mês
+  const dif = MESES.map((_, m) => {
+    const nac = lista.reduce((a, t) => a + t.nacional[m], 0);
+    const exe = lista.reduce((a, t) => a + t.execucao[m], 0);
+    return exe ? +(nac / exe * 100).toFixed(2) : 0;
+  });
+  chart("chDiferenca", {
+    type: "line",
+    data: { labels: MESES, datasets: [{ label: "Base Nacional / Base de Execução", data: dif, borderColor: "#4a8fa1", backgroundColor: "#4a8fa1", pointRadius: 3, tension: .25 }] },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => " " + pct(c.parsed.y) } } },
+      scales: { y: { suggestedMin: 95, ticks: { callback: v => v + "%" }, grid: { color: "#f0f0f0" } }, x: { grid: { display: false } } }
+    },
+    plugins: []
+  });
+
+  // Tabela por tribunal
+  let sNac = 0, sExe = 0;
+  const linhas = lista.map(t => {
+    const nac = t.nacional[ultimo], exe = t.execucao[ultimo];
+    sNac += nac; sExe += exe;
+    return { t, nac, exe, conv: exe / nac * 100 };
+  }).sort((a, b) => b.nac - a.nac);
+  window.__linhasTabela = linhas;
+  document.getElementById("tbTribunais").innerHTML =
+    `<tr class="total"><td>Totais</td><td class="num">${fmt(sExe)}</td><td class="num">${fmt(sNac)}</td><td class="num">${pct(sNac ? sExe / sNac * 100 : 0)}</td></tr>` +
+    linhas.map(l => `<tr class="clickable" data-t="${l.t.nome}"><td>${l.t.nome}</td><td class="num">${fmt(l.exe)}</td><td class="num">${fmt(l.nac)}</td><td class="num">${pct(l.conv)}</td></tr>`).join("");
+
+  // Duplicados
+  chart("chDuplicados", {
+    type: "line",
+    data: { labels: MESES, datasets: [{ data: MESES.map((_, m) => lista.reduce((a, t) => a + t.duplicados[m], 0)), borderColor: "#2f6f80", backgroundColor: "rgba(74,143,161,.15)", fill: true, pointRadius: 2, tension: .3 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "#f0f0f0" } }, x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } } } }
+  });
+
+  // Preventivos por tempo (linhas, % médio ponderado)
+  const pesoTotal = lista.reduce((a, t) => a + t.nacional[ultimo], 0) || 1;
+  const series = fx.map(f => ({
+    label: FAIXAS[f],
+    data: MESES.map((_, m) => +(lista.reduce((a, t) => a + t.serieFaixas[f][m] * t.nacional[ultimo], 0) / pesoTotal).toFixed(2)),
+    borderColor: CORES_LINHAS[f],
+    backgroundColor: CORES_LINHAS[f],
+    pointRadius: 2,
+    tension: .3
+  }));
+  chart("chPreventivos", {
+    type: "line",
+    data: { labels: MESES, datasets: series },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 8, usePointStyle: true, font: { size: 10 } } }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${pct(c.parsed.y)}` } } },
+      scales: { y: { ticks: { callback: v => v + "%" }, grid: { color: "#f0f0f0" } }, x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } } }
+    }
+  });
+
+  // Faixas (barras horizontais clicáveis)
+  const porFaixa = FAIXAS.map((_, f) => lista.reduce((a, t) => a + t.faixas[f], 0));
+  const totalPrev = porFaixa.reduce((a, b) => a + b, 0) || 1;
+  chart("chFaixas", {
+    type: "bar",
+    data: {
+      labels: FAIXAS,
+      datasets: [{
+        data: porFaixa,
+        backgroundColor: FAIXAS.map(f => sel.faixa.size === 0 || sel.faixa.has(f) ? (sel.faixa.has(f) ? "#009845" : "#4a8fa1") : "#d9d9d9"),
+        borderRadius: 2
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      maintainAspectRatio: false,
+      onClick: (_, els) => { if (els.length) alternar("faixa", FAIXAS[els[0].index]); },
+      onHover: (e, els) => { e.native.target.style.cursor = els.length ? "pointer" : "default"; },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${fmt(c.parsed.x)} presos` } } },
+      scales: { x: { grid: { color: "#f0f0f0" }, ticks: { callback: v => v >= 1000 ? (v / 1000) + " mil" : v } }, y: { grid: { display: false } } }
+    }
+  });
+
+  // Tabela por tempo
+  document.getElementById("tbTempo").innerHTML =
+    `<tr class="total"><td>Totais</td><td class="num">${fmt(fx.reduce((a, f) => a + porFaixa[f], 0))}</td><td class="num">${pct(fx.reduce((a, f) => a + porFaixa[f], 0) / totalPrev * 100)}</td></tr>` +
+    fx.map(f => `<tr class="clickable" data-f="${FAIXAS[f]}"><td>${FAIXAS[f]}</td><td class="num">${fmt(porFaixa[f])}</td><td class="num">${pct(porFaixa[f] / totalPrev * 100)}</td></tr>`).join("");
+
+  // Unidades judiciais
+  const unidades = lista.flatMap(t => t.unidades).filter(u => sel.faixa.size === 0 || sel.faixa.has(u.faixa));
+  document.getElementById("tbUnidades").innerHTML =
+    `<tr class="total"><td>Totais: ${unidades.length} unidades</td><td></td></tr>` +
+    unidades.map(u => `<tr><td>${u.nome}</td><td>${u.faixa}</td></tr>`).join("");
+}
+
+// Clique nas linhas das tabelas também seleciona (comportamento associativo do Qlik)
+document.getElementById("tbTribunais").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-t]"); if (tr) alternar("tribunal", tr.dataset.t);
+});
+document.getElementById("tbTempo").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-f]"); if (tr) alternar("faixa", tr.dataset.f);
+});
+
+// Exportar CSV da tabela de tribunais
+document.getElementById("btnCsv").onclick = () => {
+  const linhas = [["Tribunal", "Base de Execução", "Base Nacional", "Convergência (%)"]]
+    .concat(window.__linhasTabela.map(l => [l.t.nome, l.exe, l.nac, l.conv.toFixed(2).replace(".", ",")]));
+  const csv = "﻿" + linhas.map(l => l.join(";")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = "convergencia-por-tribunal-ficticio.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+render();
+</script>
+</body>
+</html>

@@ -11,6 +11,11 @@ portfolio_mirela/
 │   └── style.css    # Estilos globais, temas e responsividade
 ├── js/
 │   └── main.js      # Animações, partículas, menu mobile e formulário
+├── demos/           # Demonstrações interativas (dados fictícios) dos painéis de BI
+│   ├── painel-chamados.html     # Painel de Gestão de Chamados (Power BI)
+│   ├── painel-indicadores.html  # Indicadores e histórico (Qlik Sense)
+│   └── lib/chart.umd.js         # Chart.js 4.4.1
+├── assets/          # Currículo em PDF
 └── README.md        # Instruções de uso
 ```
 
